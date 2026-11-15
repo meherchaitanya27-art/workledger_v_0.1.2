@@ -1,0 +1,898 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0E6B6B">
+<meta name="color-scheme" content="light">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="WorkLedger">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>WorkLedger</title>
+<style>
+:root{--bg:#EEF1F4;--card:#fff;--ink:#16212C;--mute:#5B6874;--rule:#DDE3E9;--acc:#0E6B6B;--accd:#0A5252;--accl:#DDEEEE;
+--amb:#C27A0E;--we:#2F5D9E;--bad:#B3261E;--c-reg:#0D9488;--c-ot:#C27A0E;--c-we:#2F5D9E;--sl:#5A7184;--tab:62px}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{color-scheme:light}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.4 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;-webkit-text-size-adjust:100%}
+body.lock{overflow:hidden}
+button{font:inherit;color:inherit}
+#app{max-width:640px;margin:0 auto}
+#top{position:sticky;top:0;z-index:20;background:var(--bg);padding:max(10px,env(safe-area-inset-top)) 16px 8px}
+#top .bar{display:flex;align-items:center;justify-content:space-between;gap:10px}
+#top h1{margin:0;font-size:22px;font-weight:650;letter-spacing:.1px}
+.pill{border:1px solid var(--rule);background:#fff;border-radius:999px;padding:6px 12px;font-size:13px;color:var(--mute);min-height:34px;cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+.pill i{width:8px;height:8px;border-radius:50%;background:#C4CDD6;display:inline-block}
+.pill.ok i{background:var(--c-reg)}.pill.warn i{background:var(--amb)}.pill.bad i{background:var(--bad)}
+.pill.busy i{animation:pulse 1s infinite}
+@keyframes pulse{50%{opacity:.25}}
+#periodbar{display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap}
+#periodbar[hidden],#custom[hidden]{display:none}
+#custom{display:flex;gap:6px}
+select,input,textarea{font:16px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;color:var(--ink);background:#fff;border:1px solid #C4CDD6;border-radius:10px;padding:10px 12px;min-height:44px;min-width:0;max-width:100%}
+select:focus-visible,input:focus-visible,button:focus-visible,.hit:focus-visible{outline:2px solid #4FB3B3;outline-offset:2px}
+#showing{margin:6px 2px 0;color:var(--mute);font-size:13px}
+main{padding:6px 16px calc(var(--tab) + 110px + env(safe-area-inset-bottom))}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.span2{grid-column:1/-1}
+.card,.kpi{background:var(--card);border:1px solid var(--rule);border-radius:14px;padding:14px;position:relative;min-width:0}
+.card h2{margin:0 0 10px;font-size:15px;font-weight:650}
+.kt{color:var(--mute);font-size:13px;display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:22px}
+.kv{font-size:23px;font-weight:650;margin:2px 0 1px;overflow-wrap:anywhere}
+.ks{color:var(--mute);font-size:12.5px;line-height:1.3}
+.kpi.hero{background:var(--acc);border-color:var(--acc);color:#fff;padding:16px}
+.kpi.hero .kt,.kpi.hero .ks{color:#CFE8E8}
+.kpi.hero .kv{font-size:48px;line-height:1.1;margin:4px 0 6px;letter-spacing:-.5px}
+.kpi.ot{box-shadow:inset 5px 0 0 var(--c-ot)}.kpi.we{box-shadow:inset 5px 0 0 var(--c-we)}
+.kpi.ot,.kpi.we{overflow:hidden}
+.kpi.off .kv{color:#A3ADB8}.kpi.off .kt>span:first-child{color:#8A96A3}
+.sw{position:relative;display:inline-block;width:38px;height:22px;flex:none}
+.sw input{position:absolute;inset:-8px -6px;width:calc(100% + 12px);height:calc(100% + 16px);opacity:0;margin:0;cursor:pointer;min-height:0;padding:0}
+.sw span{position:absolute;inset:0;background:#C4CDD6;border-radius:11px;transition:background .15s}
+.sw span::after{content:"";position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .15s}
+.sw input:checked+span{background:var(--acc)}
+.sw input:checked+span::after{transform:translateX(16px)}
+.sw input:focus-visible+span{outline:2px solid #4FB3B3;outline-offset:2px}
+.mv{display:flex;gap:6px;margin-top:10px}
+.mv button{flex:1;border:1px dashed var(--acc);background:#F3F9F9;color:var(--accd);border-radius:8px;padding:6px;min-height:36px;cursor:pointer}
+.editbar{display:flex;gap:8px;align-items:center;justify-content:space-between;margin:2px 0 10px}
+.editbar p{margin:0;color:var(--mute);font-size:13px}
+.b{border:1px solid #C4CDD6;background:#fff;border-radius:10px;padding:10px 16px;min-height:44px;cursor:pointer}
+.b.pri{background:var(--acc);border-color:var(--acc);color:#fff;font-weight:600}
+.b.del{color:var(--bad);border-color:#E3B7B3}
+.b.sm{min-height:36px;padding:6px 12px;font-size:14px}
+.b:disabled{opacity:.55}
+.empty{color:var(--mute);margin:6px 0}
+.hist{border:1px solid var(--rule);border-radius:12px;overflow:hidden;font-size:13.5px}
+.hrow{padding:9px 12px;border-top:1px solid var(--rule);display:flex;flex-direction:column;gap:2px}
+.hrow:first-child{border-top:0}
+.hrow span{color:var(--mute);font-size:12.5px}
+.hrow b{font-weight:500}
+.banner{background:#FFF6E3;border:1px solid #EBCB8B;border-radius:14px;padding:12px 14px;margin-bottom:10px;display:flex;gap:10px;align-items:center;justify-content:space-between;font-size:14px}
+/* calendar */
+.cal-h{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.cal-h h2{flex:1;margin:0}
+.dow,.days{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.dow span{text-align:center;font-size:11.5px;color:#8A96A3;padding:2px 0}
+.day{border:0;background:transparent;border-radius:9px;min-height:44px;padding:2px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;cursor:pointer;position:relative;font-size:14px;color:var(--ink)}
+.day small{font-size:10px;line-height:1.1;opacity:.95}
+.day.out{color:#B4BEC8}
+.day.pp{background:#E3F1F1}
+.day.w{background:var(--c-reg);color:#fff}.day.w.o{background:var(--c-ot)}.day.w.e{background:var(--c-we)}
+.day.t{box-shadow:inset 0 0 0 2px var(--ink)}
+.day.pd::after{content:"$";position:absolute;top:1px;right:4px;font-size:10px;font-weight:700;color:var(--amb)}
+.day.w.pd::after{color:#fff}
+.legend{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:10px;color:var(--mute);font-size:12.5px}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{width:10px;height:10px;border-radius:3px;display:inline-block}
+/* charts */
+.chart svg{width:100%;height:auto;display:block;overflow:visible}
+.chart text{font:11px system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;fill:#5B6874}
+.chart .val{fill:var(--ink);font-weight:600}
+.chart .hit{fill:transparent;cursor:pointer}
+.chart .hit:hover,.chart .hit.sel{fill:rgba(14,107,107,.08)}
+.readout{min-height:20px;margin:6px 0 0;font-size:13px;color:var(--ink)}
+.hb{display:grid;grid-template-columns:92px 1fr auto;gap:8px;align-items:center;margin:9px 0;font-size:13.5px}
+.hb span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hb i{display:block;height:10px;border-radius:0 4px 4px 0;background:var(--sl)}
+.linkbtn{border:0;background:none;color:var(--acc);font-weight:600;padding:8px 0;min-height:36px;cursor:pointer}
+/* lists */
+.sumbar{background:#fff;border:1px solid var(--rule);border-radius:14px;padding:12px 14px;margin-bottom:10px;font-size:14px}
+.sumbar b{font-weight:650}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.row{width:100%;text-align:left;border:1px solid var(--rule);background:#fff;border-radius:14px;padding:10px 12px;display:grid;grid-template-columns:46px 1fr auto;gap:10px;align-items:center;cursor:pointer;min-height:62px}
+.row .dt{text-align:center;line-height:1.1}.row .dt b{display:block;font-size:20px}.row .dt span{font-size:12px;color:var(--mute)}
+.row .t1{font-weight:600}.row .t2{color:var(--mute);font-size:13px;overflow-wrap:anywhere}
+.row .rt{text-align:right;display:flex;flex-direction:column;align-items:flex-end;gap:2px}
+.row .rt b{font-weight:650}
+.tag{display:inline-block;border-radius:999px;padding:1px 8px;font-size:11.5px;font-weight:600;background:var(--accl);color:var(--accd)}
+.tag.ot{background:#F8EBD3;color:#8A5200}.tag.we{background:#DCE6F5;color:#234A85}
+.timer{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.timer .tv{font-size:26px;font-weight:650;min-width:130px}
+/* settings */
+.fgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.fl{display:flex;flex-direction:column;gap:4px;font-size:13px;color:var(--mute);min-width:0}
+.fl small{color:#8A96A3}
+.fl.chk{flex-direction:row;align-items:center;gap:10px;color:var(--ink);font-size:15px}
+.fl.chk input{width:22px;height:22px;min-height:0;padding:0;accent-color:var(--acc)}
+.help{color:var(--mute);font-size:13px;margin:8px 0 0}
+.hint{color:var(--mute);font-size:13px;margin:10px 0 0;min-height:18px}
+.err{color:var(--bad);font-size:13.5px;margin:8px 0 0;min-height:0}
+.st{margin:10px 0 0;font-size:13.5px}
+.st.ok{color:#0A6B5F}.st.bad{color:var(--bad)}
+.btns{display:flex;gap:8px;margin-top:14px;flex-wrap:wrap}
+.btns .b{flex:1;min-width:110px}
+.steps{margin:6px 0 0;padding-left:20px;color:var(--ink);font-size:14px}
+.steps li{margin:4px 0}
+/* chrome */
+#tabs{position:fixed;left:0;right:0;bottom:0;z-index:30;background:#fff;border-top:1px solid var(--rule);padding-bottom:env(safe-area-inset-bottom)}
+#tabs .in{max-width:640px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+#tabs button{border:0;background:none;padding:8px 0 6px;min-height:var(--tab);display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--mute);font-size:11.5px;cursor:pointer}
+#tabs button svg{width:24px;height:24px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+#tabs button[aria-current="page"]{color:var(--acc);font-weight:650}
+#fab{position:fixed;right:max(16px,calc(50% - 304px));bottom:calc(var(--tab) + 16px + env(safe-area-inset-bottom));z-index:25;border:0;background:var(--acc);color:#fff;border-radius:999px;padding:0 20px;min-height:52px;font-weight:650;box-shadow:0 6px 18px rgba(14,107,107,.35);cursor:pointer;font-size:15px}
+#fab[hidden]{display:none}
+#toast{position:fixed;left:50%;bottom:calc(var(--tab) + 80px + env(safe-area-inset-bottom));transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;z-index:70;max-width:min(92vw,520px);text-align:center;opacity:0;pointer-events:none;transition:opacity .2s;font-size:14px}
+#toast.on{opacity:1}
+.back{position:fixed;inset:0;background:rgba(22,33,44,.45);z-index:50;animation:fade .15s}
+.sheet{position:fixed;left:0;right:0;bottom:0;max-width:640px;margin:0 auto;max-height:92dvh;overflow:auto;background:#fff;border-radius:18px 18px 0 0;padding:8px 16px calc(18px + env(safe-area-inset-bottom));z-index:51;animation:up .22s ease-out;outline:0}
+.sheet .grab{width:40px;height:4px;border-radius:2px;background:#D0D7DE;margin:4px auto 10px}
+.sheet h2{margin:0 0 12px;font-size:18px}
+@keyframes fade{from{opacity:0}}@keyframes up{from{transform:translateY(40px);opacity:.6}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header id="top">
+    <div class="bar"><h1>WorkLedger</h1><button id="syncpill" class="pill" type="button"></button></div>
+    <div id="periodbar">
+      <select id="period" aria-label="Period"></select>
+      <span id="custom" hidden><input type="date" id="pf" aria-label="From"><input type="date" id="pt" aria-label="To"></span>
+    </div>
+    <p id="showing"></p>
+  </header>
+  <main id="view"></main>
+</div>
+<nav id="tabs" aria-label="Sections"><div class="in">
+  <button data-tab="dash" type="button"><svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="8" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="5" rx="1.5"/><rect x="13.5" y="11.5" width="7" height="9" rx="1.5"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.5"/></svg>Dashboard</button>
+  <button data-tab="hours" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/></svg>Hours</button>
+  <button data-tab="exp" type="button"><svg viewBox="0 0 24 24"><path d="M6 3.5h12v17l-3-2-3 2-3-2-3 2z"/><path d="M9 8.5h6M9 12h6"/></svg>Expenses</button>
+  <button data-tab="more" type="button"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3.5v2.4M12 18.1v2.4M3.5 12h2.4M18.1 12h2.4M6 6l1.7 1.7M16.3 16.3 18 18M6 18l1.7-1.7M16.3 7.7 18 6"/></svg>Settings</button>
+</div></nav>
+<button id="fab" type="button" hidden></button>
+<div id="sheet-root"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+
+<script>
+'use strict';
+/* ================================================================
+   WorkLedger phone app. Same pay rules as the Windows app.
+   Data lives only on this phone (localStorage); sync merges by record id.
+   ================================================================ */
+const KEY = 'workledger.mobile.v1';
+const INC_KEYS = ['reg', 'ot', 'we', 'tax', 'gas', 'acc'];
+const CATS = ['Fuel', 'Meals', 'Lodging', 'Parking and tolls', 'Vehicle maintenance', 'Tools and equipment', 'Safety gear (PPE)',
+  'Uniform and clothing', 'Phone and internet', 'Software', 'Supplies', 'Training', 'Travel and transport', 'Other'];
+const DEF_S = { name: '', cur: '$', rate: 25, ot: 0, otd: 8, otm: 1.5, wm: 2, tax: 20, brk: 30, gas: 0.7, dmi: 0, acc: 40, ppd: 5, v: 2 };
+const DEF_INC = { reg: true, ot: true, we: true, tax: true, gas: true, acc: true };
+const CARD_KEYS = ['total', 'hours', 'reg', 'gross', 'ot', 'we', 'tax', 'net', 'gas', 'acc', 'exp', 'pay', 'cal', 'chart_h', 'chart_c'];
+const SPAN2 = new Set(['total', 'pay', 'cal', 'chart_h', 'chart_c']);
+const MON = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const MONTHS = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+const DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+const PERIODS = [['pp', 'Current pay period'], ['lpp', 'Last pay period'], ['week', 'This week'], ['lweek', 'Last week'],
+  ['month', 'This month'], ['lmonth', 'Last month'], ['year', 'This year'], ['all', 'All time'], ['custom', 'Custom range']];
+
+let db = null;
+let _today = null;
+
+/* ---------------- dates (ISO strings, UTC arithmetic so DST never shifts a day) ---------------- */
+const pad = n => String(n).padStart(2, '0');
+function parseISO(s) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(s));
+  if (!m) return null;
+  const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]));
+  return d.getUTCMonth() === +m[2] - 1 && d.getUTCDate() === +m[3] ? d : null;
+}
+const iso = d => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());
+const addDays = (s, n) => { const d = parseISO(s); d.setUTCDate(d.getUTCDate() + n); return iso(d); };
+const wd = s => (parseISO(s).getUTCDay() + 6) % 7;            // Monday = 0
+const daysBetween = (a, b) => Math.round((parseISO(b) - parseISO(a)) / 864e5);
+const monthStart = s => s.slice(0, 8) + '01';
+const monthEnd = s => { const d = parseISO(s); return iso(new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0))); };
+function localToday() { const d = new Date(); return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()); }
+const today = () => _today || localToday();
+function niceDate(s) { const d = parseISO(s); return DOW[wd(s)] + ' ' + pad(d.getUTCDate()) + ' ' + MON[d.getUTCMonth()] + ' ' + d.getUTCFullYear(); }
+function shortDate(s) { const d = parseISO(s); return pad(d.getUTCDate()) + ' ' + MON[d.getUTCMonth()]; }
+
+/* ---------------- formatting ---------------- */
+const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function money(v) { const cur = db && db.s ? db.s.cur : '$'; return cur + Number(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); }
+function dur(h) { const m = Math.round(h * 60); return Math.floor(m / 60) + 'h ' + pad(m % 60) + 'm'; }
+const g1 = v => +Number(v).toFixed(1);
+function niceCeil(v) { if (v <= 0) return 1; const e = Math.pow(10, Math.floor(Math.log10(v))); for (const m of [1, 1.2, 1.6, 2, 2.4, 3, 4, 5, 6, 8, 10]) if (v <= m * e) return m * e; return 10 * e; }
+function ago(ms) {
+  const s = Math.max(0, (Date.now() - ms) / 1000);
+  if (s < 45) return 'just now';
+  if (s < 3600) return Math.round(s / 60) + ' min ago';
+  if (s < 86400) return Math.round(s / 3600) + ' h ago';
+  return Math.round(s / 86400) + ' d ago';
+}
+
+/* ---------------- pay rules (mirror of the Windows app) ---------------- */
+function minutes(e) {
+  const a = e.start.split(':'), b = e.end.split(':');
+  let d = (+b[0] * 60 + +b[1]) - (+a[0] * 60 + +a[1]);
+  if (d < 0) d += 1440;
+  return Math.max(0, d - (+e.brk || 0));
+}
+/* Weekend hours: weekend multiplier, never overtime. Weekday hours over the daily limit are overtime first;
+   the remaining regular hours then count toward the weekly limit (Monday to Sunday week). */
+function calc(x) {
+  const s = x.s, out = {}, cum = {}, dcum = {};
+  const thr = s.ot > 0 ? s.ot : Infinity;
+  const dthr = (s.otd || 0) > 0 ? s.otd : Infinity;
+  const list = [...x.e].sort((a, b) => { const ka = a.date + '|' + a.start + '|' + a.id, kb = b.date + '|' + b.start + '|' + b.id; return ka < kb ? -1 : ka > kb ? 1 : 0; });
+  for (const e of list) {
+    const h = minutes(e) / 60, we = wd(e.date) >= 5;
+    let reg, wk, ot;
+    if (we) { reg = 0; wk = h; ot = 0; }
+    else {
+      const dprev = dcum[e.date] || 0;
+      const dReg = Math.max(0, Math.min(h, dthr - dprev));
+      dcum[e.date] = dprev + h;
+      const k = addDays(e.date, -wd(e.date));
+      const prev = cum[k] || 0;
+      reg = Math.max(0, Math.min(dReg, thr - prev));
+      cum[k] = prev + dReg;
+      wk = 0; ot = h - reg;
+    }
+    const mi = +e.miles || 0;
+    out[e.id] = { h, reg, wk, ot, we, mi, gas: mi * s.gas, reg_pay: reg * s.rate, wk_pay: wk * s.rate * s.wm, ot_pay: ot * s.rate * s.otm,
+      pay: reg * s.rate + wk * s.rate * s.wm + ot * s.rate * s.otm };
+  }
+  return out;
+}
+function summary(x, c, rows) {
+  const s = x.s, inc = x.inc || {};
+  const on = k => inc[k] !== false;
+  const r = { h: 0, reg: 0, wk: 0, ot: 0, gross: 0, mi: 0, gas: 0 };
+  const days = new Set();
+  for (const e of rows) {
+    const k = c[e.id];
+    r.h += k.h; r.reg += k.reg; r.wk += k.wk; r.ot += k.ot; r.gross += k.pay; r.mi += k.mi; r.gas += k.gas; days.add(e.date);
+  }
+  r.days = days.size;
+  r.reg_pay = r.reg * s.rate; r.wk_pay = r.wk * s.rate * s.wm; r.ot_pay = r.ot * s.rate * s.otm;
+  r.acc = days.size * s.acc;
+  r.gross_all = r.gross;
+  r.reg_c = on('reg') ? r.reg_pay : 0; r.wk_c = on('we') ? r.wk_pay : 0; r.ot_c = on('ot') ? r.ot_pay : 0;
+  r.gross = r.reg_c + r.wk_c + r.ot_c;
+  r.tax_calc = r.gross * s.tax / 100;
+  r.tax = on('tax') ? r.tax_calc : 0;
+  r.net = r.gross - r.tax;
+  r.gas_c = on('gas') ? r.gas : 0; r.acc_c = on('acc') ? r.acc : 0;
+  r.allow = r.gas_c + r.acc_c;
+  r.total = r.net + r.allow;
+  return r;
+}
+/* Pay periods: the 1st to the 15th, and the 16th to month end. */
+function halfBounds(s) { const ms = monthStart(s); return +s.slice(8) <= 15 ? [ms, s.slice(0, 8) + '15'] : [s.slice(0, 8) + '16', monthEnd(s)]; }
+function payPeriod(S, offset) {
+  let [st, en] = halfBounds(today());
+  for (let i = 0; i < Math.abs(offset); i++) [st, en] = offset < 0 ? halfBounds(addDays(st, -1)) : halfBounds(addDays(en, 1));
+  return [st, en, addDays(en, Math.round(+S.ppd || 0))];
+}
+function periodRange(x) {
+  const t = today(), p = x.ui.p, ws = addDays(t, -wd(t));
+  if (p === 'pp' || p === 'lpp') return payPeriod(x.s, p === 'pp' ? 0 : -1).slice(0, 2);
+  if (p === 'week') return [ws, addDays(ws, 6)];
+  if (p === 'lweek') return [addDays(ws, -7), addDays(ws, -1)];
+  if (p === 'month') return [monthStart(t), monthEnd(t)];
+  if (p === 'lmonth') { const last = addDays(monthStart(t), -1); return [monthStart(last), last]; }
+  if (p === 'year') return [t.slice(0, 4) + '-01-01', t.slice(0, 4) + '-12-31'];
+  if (p === 'custom' && parseISO(x.ui.pf) && parseISO(x.ui.pt)) return [x.ui.pf, x.ui.pt];
+  return ['0000-01-01', '9999-12-31'];
+}
+
+/* ---------------- sync: clean, merge ---------------- */
+const num = (v, lo, hi, def) => { v = parseFloat(v); return isFinite(v) ? Math.min(hi, Math.max(lo, v)) : def; };
+const idOk = s => typeof s === 'string' && /^[A-Za-z0-9_-]{1,40}$/.test(s);
+const timeOk = s => typeof s === 'string' && /^([01]\d|2[0-3]):[0-5]\d$/.test(s);
+const str = (v, n) => String(v == null ? '' : v).slice(0, n);
+function cleanEntry(r) {
+  if (!r || typeof r !== 'object' || !idOk(r.id) || !parseISO(r.date) || !timeOk(r.start) || !timeOk(r.end)) return null;
+  const j = str(r.jnum, 7).toUpperCase();
+  return { id: r.id, date: r.date, start: r.start, end: r.end, brk: Math.round(num(r.brk, 0, 600, 0)), miles: num(r.miles, 0, 2000, 0),
+    note: str(r.note, 200), jnum: /^J\d{6}$/.test(j) ? j : '', mt: Math.round(num(r.mt, 0, 9e15, 0)) };
+}
+function cleanExpense(r) {
+  if (!r || typeof r !== 'object' || !idOk(r.id) || !parseISO(r.date)) return null;
+  const rc = str(r.receipt, 80);
+  return { id: r.id, date: r.date, cat: str(r.cat, 40).trim() || 'Other', desc: str(r.desc, 200), amt: num(r.amt, 0, 1e9, 0), re: !!r.re,
+    receipt: /^[A-Za-z0-9._-]*$/.test(rc) ? rc : '', mt: Math.round(num(r.mt, 0, 9e15, 0)) };
+}
+function cleanSettings(s) {
+  s = s && typeof s === 'object' ? s : {}; const d = DEF_S;
+  return { name: str(s.name, 100), cur: str(s.cur == null ? '$' : s.cur, 4) || '$', rate: num(s.rate, 0, 1e5, d.rate), ot: num(s.ot, 0, 168, d.ot),
+    otd: num(s.otd, 0, 24, d.otd), otm: num(s.otm, 1, 5, d.otm), wm: num(s.wm, 1, 5, d.wm), tax: num(s.tax, 0, 100, d.tax),
+    brk: Math.round(num(s.brk, 0, 600, d.brk)), gas: num(s.gas, 0, 100, d.gas), dmi: num(s.dmi, 0, 2000, d.dmi), acc: num(s.acc, 0, 1e5, d.acc),
+    ppd: Math.round(num(s.ppd, 0, 30, d.ppd)), v: 2 };
+}
+function cleanBundle(raw) {
+  if (!raw || typeof raw !== 'object' || !Array.isArray(raw.e) || !Array.isArray(raw.x)) throw new Error('That is not a WorkLedger sync file.');
+  if (raw.e.length > 50000 || raw.x.length > 50000) throw new Error('That file is too large.');
+  const pick = (list, fn) => { const m = new Map(); for (const r of list) { const c = fn(r); if (c && (!m.has(c.id) || c.mt > m.get(c.id).mt)) m.set(c.id, c); } return [...m.values()]; };
+  const dl = {};
+  if (raw.dl && typeof raw.dl === 'object') for (const [k, v] of Object.entries(raw.dl)) if (idOk(k)) dl[k] = Math.round(num(v, 0, 9e15, 0));
+  const inc = {}; for (const k of INC_KEYS) inc[k] = !(raw.inc && raw.inc[k] === false);
+  return { app: 'WorkLedger', v: 1, e: pick(raw.e, cleanEntry), x: pick(raw.x, cleanExpense), dl, s: cleanSettings(raw.s), inc, pmt: Math.round(num(raw.pmt, 0, 9e15, 0)) };
+}
+const sameJSON = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+/* Newest edit wins, per record. A deletion beats an older edit. Ties go to local, or to remote when preferRemote. */
+function mergeBundle(L, R, preferRemote) {
+  const dl = { ...R.dl };
+  for (const [k, v] of Object.entries(L.dl)) dl[k] = Math.max(dl[k] || 0, v);
+  const stats = { added: 0, updated: 0, deleted: 0, prefs: false };
+  const mergeList = (a, b) => {
+    const before = new Map(a.map(r => [r.id, r])), m = new Map(before);
+    for (const r of b) { const c = m.get(r.id); if (!c || r.mt > c.mt || (preferRemote && r.mt === c.mt)) m.set(r.id, r); }
+    for (const [id, r] of [...m]) if (dl[id] !== undefined && dl[id] >= r.mt) m.delete(id);
+    for (const [id, r] of m) { if (!before.has(id)) stats.added++; else if (!sameJSON(before.get(id), r)) stats.updated++; }
+    for (const id of before.keys()) if (!m.has(id)) stats.deleted++;
+    return [...m.values()];
+  };
+  const out = { app: 'WorkLedger', v: 1, e: mergeList(L.e, R.e), x: mergeList(L.x, R.x), dl, s: L.s, inc: L.inc, pmt: L.pmt };
+  if (R.pmt > L.pmt || (preferRemote && R.pmt === L.pmt && !(sameJSON(L.s, R.s) && sameJSON(L.inc, R.inc)))) {
+    out.s = R.s; out.inc = R.inc; out.pmt = R.pmt; stats.prefs = true;
+  }
+  return { bundle: out, stats };
+}
+
+/* ================= everything below needs a browser ================= */
+const $ = (s, r) => (r || document).querySelector(s);
+const $$ = (s, r) => [...(r || document).querySelectorAll(s)];
+const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+
+function newDB() {
+  return { e: [], x: [], dl: {}, s: { ...DEF_S }, inc: { ...DEF_INC }, pmt: 0, timer: null,
+    ui: { p: 'pp', pf: '', pt: '', order: [...CARD_KEYS], tab: 'dash', cal: '' }, sync: { url: '', code: '', last: 0, msg: '', ok: true, via: '', failAt: 0, lastIn: 0, inMsg: '', inSaved: 0, expAt: 0, sent: {} } };
+}
+function loadDB() {
+  const d = newDB();
+  try {
+    const r = JSON.parse(localStorage.getItem(KEY));
+    if (r && typeof r === 'object') {
+      const b = cleanBundle({ e: r.e || [], x: r.x || [], dl: r.dl, s: r.s, inc: r.inc, pmt: r.pmt });
+      Object.assign(d, { e: b.e, x: b.x, dl: b.dl, s: b.s, inc: b.inc, pmt: b.pmt });
+      if (r.ui) Object.assign(d.ui, r.ui);
+      if (r.sync) Object.assign(d.sync, r.sync);
+      if (Number.isFinite(+r.timer) && +r.timer > 0) d.timer = +r.timer;
+    }
+  } catch (e) { /* start fresh */ }
+  const known = (d.ui.order || []).filter(k => CARD_KEYS.includes(k));
+  d.ui.order = [...new Set([...known, ...CARD_KEYS.filter(k => !known.includes(k))])];
+  if (!PERIODS.some(p => p[0] === d.ui.p)) d.ui.p = 'pp';
+  d.ui.edit = false;
+  return d;
+}
+function save() {
+  try { localStorage.setItem(KEY, JSON.stringify(db)); }
+  catch (e) { toast('Could not save on this phone. Free some storage or use Share sync file.'); }
+}
+let toastT = 0;
+function toast(m) { const t = $('#toast'); t.textContent = m; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 3200); }
+
+const bundle = forSend => ({ app: 'WorkLedger', v: 1, t: Date.now(), e: db.e, x: db.x, dl: db.dl, s: db.s, inc: db.inc, pmt: forSend && !db.sync.last ? 0 : db.pmt });
+/* db.sync.sent remembers which record versions the PC is known to have, so "to send" counts only real unsent changes. */
+function markAll() {
+  const sent = {}; for (const r of db.e.concat(db.x)) sent[r.id] = r.mt;
+  for (const [k, t] of Object.entries(db.dl)) sent['d:' + k] = t;
+  sent.__p = db.pmt; db.sync.sent = sent;
+}
+function markFrom(R) {
+  const sent = db.sync.sent || (db.sync.sent = {}), mine = new Map(db.e.concat(db.x).map(r => [r.id, r.mt]));
+  for (const r of R.e.concat(R.x)) if (mine.get(r.id) === r.mt) sent[r.id] = r.mt;
+  for (const [k, t] of Object.entries(R.dl)) if (db.dl[k] === t) sent['d:' + k] = t;
+  if (R.pmt === db.pmt) sent.__p = db.pmt;
+}
+function mergeInto(raw, preferRemote, mark) {
+  const R = cleanBundle(raw);
+  const { bundle: M, stats } = mergeBundle(cleanBundle(bundle(false)), R, preferRemote);
+  Object.assign(db, { e: M.e, x: M.x, dl: M.dl, s: M.s, inc: M.inc, pmt: M.pmt });
+  if (mark === 'all') markAll(); else if (mark === 'remote') markFrom(R);
+  return stats;
+}
+const statText = st => { const p = []; if (st.added) p.push(st.added + ' new'); if (st.updated) p.push(st.updated + ' updated'); if (st.deleted) p.push(st.deleted + ' removed'); if (st.prefs) p.push('settings'); return p.length ? p.join(', ') : 'no changes'; };
+function dirtyCount() {
+  const sent = db.sync.sent || {};
+  return db.e.filter(r => sent[r.id] !== r.mt).length + db.x.filter(r => sent[r.id] !== r.mt).length
+    + Object.entries(db.dl).filter(([k, t]) => sent['d:' + k] !== t).length + (sent.__p !== db.pmt ? 1 : 0);
+}
+
+/* ---------------- derived data ---------------- */
+function ctx() {
+  const c = calc(db), [lo, hi] = periodRange(db);
+  const rows = db.e.filter(e => e.date >= lo && e.date <= hi), xrows = db.x.filter(x => x.date >= lo && x.date <= hi);
+  return { c, lo, hi, rows, xrows, r: summary(db, c, rows) };
+}
+
+/* ---------------- header ---------------- */
+function renderHeader() {
+  const t = db.ui.tab, show = t !== 'more';
+  $('#periodbar').hidden = !show;
+  $('#showing').hidden = !show;
+  const sel = $('#period');
+  sel.innerHTML = PERIODS.map(p => `<option value="${p[0]}"${p[0] === db.ui.p ? ' selected' : ''}>${p[1]}</option>`).join('');
+  $('#custom').hidden = db.ui.p !== 'custom';
+  $('#pf').value = db.ui.pf || ''; $('#pt').value = db.ui.pt || '';
+  if (show) { const [lo, hi] = periodRange(db); $('#showing').textContent = lo < '1000' ? 'Showing all time' : 'Showing ' + shortDate(lo) + ' ' + lo.slice(0, 4) + ' to ' + shortDate(hi) + ' ' + hi.slice(0, 4); }
+  renderPill();
+  $$('#tabs button').forEach(b => b.setAttribute('aria-current', b.dataset.tab === t ? 'page' : 'false'));
+  const fab = $('#fab');
+  fab.hidden = t === 'more';
+  fab.textContent = t === 'exp' ? '+ Expense' : '+ Hours';
+  fab.setAttribute('aria-label', t === 'exp' ? 'Add expense' : 'Add hours');
+}
+let syncState = 'idle';
+const whenTxt = ms => new Date(ms).toLocaleString([], { weekday: 'short', day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' });
+/* Most recent sync event of any kind: Wi-Fi sync, file loaded from the PC, or file saved to Files. */
+function lastEvent() {
+  const s = db.sync, ev = [];
+  if (s.last) ev.push([s.last, 'Wi-Fi', 'synced']);
+  if (s.lastIn) ev.push([s.lastIn, 'File', 'loaded']);
+  if (s.expAt) ev.push([s.expAt, 'File', 'saved']);
+  ev.sort((a, b) => b[0] - a[0]);
+  return ev[0] || null;
+}
+function renderPill() {
+  const p = $('#syncpill'), n = dirtyCount(), ev = lastEvent();
+  let cls = '', txt;
+  if (syncState === 'busy') { cls = 'busy'; txt = 'Syncing...'; }
+  else if (!db.sync.ok && db.sync.failAt && (!ev || db.sync.failAt > ev[0])) { cls = 'bad'; txt = 'Wi-Fi sync failed'; }
+  else if (!ev) { cls = 'warn'; txt = 'Not synced yet'; }
+  else if (n) { cls = 'warn'; txt = ev[1] + ' ' + ev[2] + ' ' + ago(ev[0]) + ', ' + n + ' to send'; }
+  else { cls = 'ok'; txt = ev[1] + ' ' + ev[2] + ' ' + ago(ev[0]); }
+  p.className = 'pill ' + cls;
+  p.innerHTML = '<i></i>' + esc(txt);
+  p.setAttribute('aria-label', 'Sync status: ' + txt);
+}
+
+/* ---------------- dashboard ---------------- */
+function kpi(key, title, value, sub, o) {
+  o = o || {};
+  const tg = o.toggle ? `<label class="sw"><input type="checkbox" role="switch" data-inc="${key}" aria-label="Count ${esc(title)} in the total payout"${db.inc[key] !== false ? ' checked' : ''}><span></span></label>` : '';
+  const off = o.toggle && db.inc[key] === false;
+  return `<section class="kpi ${o.cls || ''}${off ? ' off' : ''}"><div class="kt"><span>${esc(title)}</span>${tg}</div><div class="kv">${esc(value)}</div><div class="ks">${esc(sub)}${off ? ' (not counted)' : ''}</div>__MV__</section>`;
+}
+function dashCards(cx) {
+  const { c, r, xrows } = cx, s = db.s, n = r.days, on = k => db.inc[k] !== false;
+  const xt = xrows.reduce((a, x) => a + x.amt, 0), xr = xrows.filter(x => x.re).reduce((a, x) => a + x.amt, 0);
+  const offN = INC_KEYS.filter(k => !on(k)).length;
+  const parts = []; if (on('reg')) parts.push(dur(r.reg) + ' regular'); if (on('we') && r.wk > 0.001) parts.push(dur(r.wk) + ' weekend'); if (on('ot') && r.ot > 0.001) parts.push(dur(r.ot) + ' overtime');
+  const K = {};
+  K.total = `<section class="kpi hero span2"><div class="kt">Estimated total payout</div><div class="kv">${esc(money(r.total))}</div><div class="ks">net wages ${esc(money(r.net))} + allowances ${esc(money(r.allow))}${offN ? ` (${offN} turned off)` : ''}</div>__MV__</section>`;
+  K.hours = kpi('hours', 'Hours worked', dur(r.h), n + ' day' + (n === 1 ? '' : 's') + (n ? ', avg ' + dur(r.h / n) : ''));
+  K.reg = kpi('reg', 'Regular pay', money(r.reg_pay), dur(r.reg) + ' at ' + money(s.rate) + '/h', { toggle: 1 });
+  K.gross = kpi('gross', 'Gross wages', money(r.gross), parts.length ? parts.join(', ') : 'No wages counted');
+  K.ot = kpi('ot', 'Overtime', money(r.ot_pay), r.ot > 0.001 ? dur(r.ot) + ' at ' + g1(s.otm) + 'x your rate' : 'No overtime in this period', { toggle: 1, cls: 'ot' });
+  K.we = kpi('we', 'Weekend pay', money(r.wk_pay), r.wk > 0.001 ? dur(r.wk) + ' at ' + g1(s.wm) + 'x your rate' : 'No weekend work in this period', { toggle: 1, cls: 'we' });
+  K.tax = kpi('tax', 'Estimated tax', money(r.tax_calc), 'at ' + g1(s.tax) + '% of counted wages', { toggle: 1 });
+  K.net = kpi('net', 'Net wages', money(r.net), 'counted wages minus tax');
+  K.gas = kpi('gas', 'Gas allowance', money(r.gas), g1(r.mi) + ' mi at ' + money(s.gas) + '/mi', { toggle: 1 });
+  K.acc = kpi('acc', 'Accommodation', money(r.acc), n + ' day' + (n === 1 ? '' : 's') + ' at ' + money(s.acc), { toggle: 1 });
+  K.exp = kpi('exp', 'Expenses', money(xt), money(xr) + ' reimbursable');
+  K.pay = payCard(c);
+  K.cal = calCard(c);
+  K.chart_h = `<section class="card span2 chart"><h2>Hours worked</h2>${hoursChart(cx)}__MV__</section>`;
+  K.chart_c = `<section class="card span2"><h2>Expenses by category</h2>${catChart(xrows)}__MV__</section>`;
+  return K;
+}
+function dashHTML() {
+  const cx = ctx(), K = dashCards(cx), edit = db.ui.edit;
+  const bar = edit
+    ? `<div class="editbar"><p>Use the arrows to move cards.</p><span><button class="b sm" data-act="reset-layout" type="button">Reset</button> <button class="b sm pri" data-act="toggle-edit" type="button">Done</button></span></div>`
+    : `<div class="editbar"><span></span><button class="b sm" data-act="toggle-edit" type="button">Customize layout</button></div>`;
+  const cards = db.ui.order.map((k, i) => {
+    const mv = edit ? `<div class="mv"><button type="button" data-mv="-1" data-k="${k}" aria-label="Move earlier"${i === 0 ? ' disabled' : ''}>&#9650; Earlier</button><button type="button" data-mv="1" data-k="${k}" aria-label="Move later"${i === db.ui.order.length - 1 ? ' disabled' : ''}>&#9660; Later</button></div>` : '';
+    return K[k].replace('__MV__', mv).replace(/^<section class="/, `<section data-card="${k}" class="${SPAN2.has(k) ? 'span2 ' : ''}`);
+  }).join('');
+  const ev = lastEvent(), stale = !ev || Date.now() - ev[0] > 864e5;
+  const ban = stale && (db.e.length || db.x.length || ev) ? `<div class="banner"><span>${ev ? 'Last sync was ' + esc(ago(ev[0])) + '. Load the latest data from your PC.' : 'This phone has not synced yet.'}</span><button class="b sm pri" data-tab-go="more" type="button">Sync</button></div>` : '';
+  return ban + bar + `<div class="grid">${cards}</div>`;
+}
+function payCard(c) {
+  const s = db.s, [st, en, pd] = payPeriod(s, 0), [ls, le, lp] = payPeriod(s, -1);
+  const cur = summary(db, c, db.e.filter(e => e.date >= st && e.date <= en)), last = summary(db, c, db.e.filter(e => e.date >= ls && e.date <= le));
+  const left = daysBetween(today(), pd);
+  const when = left === 0 ? 'today' : left > 0 ? `in ${left} day${left === 1 ? '' : 's'}` : `${-left} day${left === -1 ? '' : 's'} ago`;
+  const pr = [money(cur.net) + ' net wages']; if (cur.gas_c) pr.push(money(cur.gas_c) + ' gas'); if (cur.acc_c) pr.push(money(cur.acc_c) + ' accommodation');
+  return `<section class="card span2"><h2>Pay period payout</h2><div class="ks">${esc(shortDate(st) + ' to ' + shortDate(en) + ' ' + en.slice(0, 4))}. Payday ${esc(niceDate(pd).slice(0, 10))} (${when}).</div>
+    <div class="kv" style="font-size:28px">${esc(money(cur.total))}</div><div class="ks">${esc(pr.join(' + '))}. ${esc(dur(cur.h))} worked so far.</div>
+    <div class="ks" style="margin-top:8px">Last period (${esc(shortDate(ls) + ' to ' + shortDate(le))}), paid ${esc(shortDate(lp))}: ${esc(money(last.total))}</div>__MV__</section>`;
+}
+function calCard(c) {
+  const ym = db.ui.cal || today().slice(0, 7), first = ym + '-01', start = addDays(first, -wd(first));
+  const [ps, pe, payday] = payPeriod(db.s, 0), map = {};
+  for (const e of db.e) { const k = c[e.id], d = map[e.date] || (map[e.date] = { h: 0, ot: 0, we: k.we, mi: 0, j: '' }); d.h += k.h; d.ot += k.ot; d.mi += k.mi; if (e.jnum) d.j = e.jnum; }
+  let cells = '';
+  for (let i = 0; i < 42; i++) {
+    const d = addDays(start, i), m = map[d], out = d.slice(0, 7) !== ym;
+    const cl = ['day']; if (out) cl.push('out'); if (d >= ps && d <= pe) cl.push('pp'); if (m && !out) { cl.push('w'); if (m.ot > 0.001) cl.push('o'); else if (m.we) cl.push('e'); }
+    if (d === today()) cl.push('t'); if (d === payday) cl.push('pd');
+    const lab = niceDate(d) + (m ? ', ' + dur(m.h) + ' worked' : ', no hours') + (d === payday ? ', payday' : '');
+    cells += `<button type="button" class="${cl.join(' ')}" data-day="${d}" aria-label="${esc(lab)}">${+d.slice(8)}${m && !out ? `<small>${g1(m.h)}h</small>` : ''}</button>`;
+  }
+  const y = +ym.slice(0, 4), mo = +ym.slice(5) - 1;
+  return `<section class="card span2"><div class="cal-h"><h2>${MONTHS[mo]} ${y}</h2><button class="b sm" data-cal="-1" type="button" aria-label="Previous month">&lsaquo;</button><button class="b sm" data-cal="0" type="button">Today</button><button class="b sm" data-cal="1" type="button" aria-label="Next month">&rsaquo;</button></div>
+    <div class="dow">${DOW.map(d => `<span>${d.slice(0, 2)}</span>`).join('')}</div><div class="days">${cells}</div>
+    <div class="legend"><span><i style="background:var(--c-reg)"></i>Worked</span><span><i style="background:var(--c-ot)"></i>Overtime</span><span><i style="background:var(--c-we)"></i>Weekend</span><span><i style="background:#E3F1F1;box-shadow:inset 0 0 0 1px #B9DADA"></i>Pay period</span><span><b style="color:var(--amb)">$</b> Payday</span></div>__MV__</section>`;
+}
+function barPath(x, y, w, h, r) { r = Math.min(r, w / 2, h); return `M${x},${y + h}V${y + r}Q${x},${y} ${x + r},${y}H${x + w - r}Q${x + w},${y} ${x + w},${y + r}V${y + h}Z`; }
+function hoursChart(cx) {
+  const { rows, c } = cx;
+  if (!rows.length) return '<p class="empty">No hours logged in this period.</p>';
+  const dates = rows.map(e => e.date).sort(), lo = dates[0], hi = dates[dates.length - 1], monthly = daysBetween(lo, hi) > 62, g = {};
+  for (const e of rows) { const k = monthly ? e.date.slice(0, 7) : e.date, b = g[k] || (g[k] = { reg: 0, ot: 0, wk: 0 }), r = c[e.id]; b.reg += r.reg; b.ot += r.ot; b.wk += r.wk; }
+  let keys = []; if (monthly) keys = Object.keys(g).sort(); else for (let d = lo; d <= hi; d = addDays(d, 1)) keys.push(d);
+  const W = 340, H = 176, L = 30, R = 6, T = 18, B = 24, pw = W - L - R, ph = H - T - B, base = T + ph, n = keys.length, slot = pw / n, bw = Math.min(24, Math.max(3, slot * 0.62));
+  const tot = k => g[k] ? g[k].reg + g[k].ot + g[k].wk : 0, top = niceCeil(Math.max(...keys.map(tot)));
+  let svg = `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Hours worked per ${monthly ? 'month' : 'day'}">`;
+  for (let i = 0; i <= 2; i++) { const y = base - ph * i / 2; svg += `<line x1="${L}" x2="${W - R}" y1="${y}" y2="${y}" stroke="#E6EAEE" stroke-width="1"/><text x="${L - 5}" y="${y + 4}" text-anchor="end">${g1(top * i / 2)}h</text>`; }
+  const step = Math.ceil(n / 8), maxK = keys.reduce((a, k) => tot(k) > tot(a) ? k : a, keys[0]);
+  keys.forEach((k, i) => {
+    const b = g[k], x0 = L + slot * i, bx = x0 + (slot - bw) / 2;
+    if (b) {
+      const segs = [[b.reg, 'var(--c-reg)'], [b.wk, 'var(--c-we)'], [b.ot, 'var(--c-ot)']].filter(s => s[0] > 0.001);
+      let yb = base; segs.forEach((s, j) => { const h = ph * s[0] / top, yt = yb - h, topmost = j === segs.length - 1;
+        svg += topmost ? `<path d="${barPath(bx, yt, bw, h, 4)}" fill="${s[1]}"/>` : `<rect x="${bx}" y="${yt + 2}" width="${bw}" height="${Math.max(1, h - 2)}" fill="${s[1]}"/>`; yb = yt; });
+      if (k === maxK) svg += `<text class="val" x="${bx + bw / 2}" y="${yb - 4}" text-anchor="middle">${g1(tot(k))}h</text>`;
+    }
+    if (i % step === 0 || i === n - 1) svg += `<text x="${x0 + slot / 2}" y="${H - 7}" text-anchor="middle">${monthly ? MON[+k.slice(5) - 1] : +k.slice(8)}</text>`;
+    const lab = (monthly ? MONTHS[+k.slice(5) - 1] + ' ' + k.slice(0, 4) : niceDate(k)) + ': ' + (b ? dur(tot(k)) : 'no hours') + (b && b.ot > 0.001 ? ` (${dur(b.ot)} overtime)` : '') + (b && b.wk > 0.001 ? ` (${dur(b.wk)} weekend)` : '');
+    svg += `<rect class="hit" tabindex="0" x="${x0}" y="${T - 8}" width="${slot}" height="${ph + 8}" data-read="${esc(lab)}" aria-label="${esc(lab)}"/>`;
+  });
+  svg += '</svg>';
+  return `${svg}<div class="readout" id="chart-read" aria-live="polite">Tap a bar for details.</div>
+    <div class="legend"><span><i style="background:var(--c-reg)"></i>Regular</span><span><i style="background:var(--c-ot)"></i>Overtime</span><span><i style="background:var(--c-we)"></i>Weekend</span></div>
+    <button class="linkbtn" data-tab-go="hours" type="button">View as a table</button>`;
+}
+function catChart(xrows) {
+  if (!xrows.length) return '<p class="empty">No expenses in this period.</p>';
+  const g = {}; for (const x of xrows) g[x.cat] = (g[x.cat] || 0) + x.amt;
+  const list = Object.entries(g).sort((a, b) => b[1] - a[1]), shown = list.slice(0, 7), rest = list.slice(7).reduce((a, b) => a + b[1], 0);
+  if (rest > 0) shown.push(['Other categories', rest]);
+  const mx = Math.max(...shown.map(s => s[1])) || 1;
+  return shown.map(([k, v]) => `<div class="hb"><span title="${esc(k)}">${esc(k)}</span><i style="width:${Math.max(2, v / mx * 100)}%"></i><span>${esc(money(v))}</span></div>`).join('');
+}
+
+/* ---------------- hours ---------------- */
+function hoursHTML() {
+  const cx = ctx(), { c, rows } = cx, sm = db.s;
+  const T = rows.reduce((a, e) => { const k = c[e.id]; a.h += k.h; a.pay += k.pay; a.ot += k.ot; a.otp += k.ot_pay; a.mi += k.mi; return a; }, { h: 0, pay: 0, ot: 0, otp: 0, mi: 0 });
+  const run = !!db.timer;
+  let h = `<section class="card" style="margin-bottom:10px"><div class="timer"><div><div class="ks">Live timer</div><div class="tv" id="tv">${run ? '00:00:00' : 'Not running'}</div></div>
+    ${run ? '<button class="b pri" data-act="clock" type="button">Clock out and save</button><button class="b" data-act="discard" type="button">Discard</button>' : '<button class="b pri" data-act="clock" type="button">Clock in</button>'}</div>
+    <p class="help">${run ? 'Started ' + esc(new Date(db.timer).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) + '. It keeps running if you close the app.' : 'Your default break and miles are added when you clock out.'}</p></section>`;
+  if (!rows.length) {
+    const out = db.e.length;
+    return h + `<p class="empty">No entries in this period. Tap + Hours to add a shift.${out ? ' ' + out + ' entr' + (out === 1 ? 'y is' : 'ies are') + ' outside this period. Choose All time at the top to see everything.' : ''}</p>`;
+  }
+  h += `<div class="sumbar"><b>${esc(dur(T.h))}</b> worked &middot; wages <b>${esc(money(T.pay))}</b>${T.ot > 0.001 ? ` &middot; overtime ${esc(dur(T.ot))} = ${esc(money(T.otp))}` : ''}${T.mi ? ` &middot; ${g1(T.mi)} mi` : ''}</div><ul class="list">`;
+  for (const e of [...rows].sort((a, b) => (b.date + b.start + b.id) < (a.date + a.start + a.id) ? -1 : 1)) {
+    const k = c[e.id], tags = (k.we ? `<span class="tag we">Weekend x${g1(sm.wm)}</span>` : '') + (k.ot > 0.001 ? `<span class="tag ot">${esc(dur(k.ot))} OT</span>` : '');
+    h += `<li><button class="row" type="button" data-edit-e="${e.id}"><span class="dt"><b>${+e.date.slice(8)}</b><span>${DOW[wd(e.date)]}</span></span>
+      <span><div class="t1">${e.start} - ${e.end} <small style="font-weight:400;color:var(--mute)">(${e.brk}m break)</small></div><div class="t2">${[e.jnum, k.mi ? g1(k.mi) + ' mi' : '', e.note].filter(Boolean).map(esc).join(' &middot; ') || '&nbsp;'}</div></span>
+      <span class="rt"><b>${esc(dur(k.h))}</b><span>${esc(money(k.pay))}</span>${tags}</span></button></li>`;
+  }
+  return h + '</ul>';
+}
+function sameDayJ(date, exceptId) { const f = db.e.find(e => e.date === date && e.jnum && e.id !== exceptId); return f ? f.jnum : ''; }
+function showDate(d) {
+  const [lo, hi] = periodRange(db);
+  if (d >= lo && d <= hi) return;
+  const [a, b] = halfBounds(d);
+  Object.assign(db.ui, { p: 'custom', pf: a, pt: b });
+  toast('Saved. Now showing ' + shortDate(a) + ' to ' + shortDate(b) + ' so you can see it.');
+}
+function entryPreview(o, id) {
+  if (!parseISO(o.date) || !timeOk(o.start) || !timeOk(o.end)) return '';
+  const probe = { ...o, id: id || '__new' };
+  if (minutes(probe) <= 0) return 'No paid time. Check the times and the break.';
+  const k = calc({ s: db.s, e: db.e.filter(x => x.id !== id).concat([probe]) })[probe.id];
+  return `Paid ${dur(k.h)}${k.we ? ' (weekend)' : ''}${k.ot > 0.001 ? ', ' + dur(k.ot) + ' overtime' : ''}: ${money(k.pay)} wages` + (k.gas ? ' + ' + money(k.gas) + ' gas' : '');
+}
+function openEntry(id, date) {
+  const e = id ? db.e.find(x => x.id === id) : null;
+  const v = e || { date: date || today(), start: '09:00', end: '17:00', brk: db.s.brk, miles: db.s.dmi, note: '', jnum: '' };
+  const j0 = e ? e.jnum : sameDayJ(v.date, '');
+  openSheet(e ? 'Edit hours' : 'Add hours', `<form id="f-entry" novalidate><div class="fgrid">
+    <label class="fl span2">Date<input type="date" name="date" required value="${esc(v.date)}"></label>
+    <label class="fl span2">J number <small>(optional, J plus 6 digits)</small><input name="jnum" maxlength="7" autocomplete="off" autocapitalize="characters" placeholder="J123456" value="${esc(j0)}"></label>
+    <label class="fl">Start<input type="time" name="start" required value="${esc(v.start)}"></label>
+    <label class="fl">End<input type="time" name="end" required value="${esc(v.end)}"></label>
+    <label class="fl">Unpaid break (min)<input type="number" name="brk" min="0" max="600" step="5" inputmode="numeric" value="${v.brk}"></label>
+    <label class="fl">Miles driven<input type="number" name="miles" min="0" max="2000" step="0.1" inputmode="decimal" value="${v.miles || 0}"></label>
+    <label class="fl span2">Note or project<input name="note" maxlength="200" value="${esc(v.note)}"></label></div>
+    <p class="hint" id="pv"></p><p class="err" id="er" role="alert"></p>
+    <div class="btns"><button type="button" class="b" data-close>Cancel</button>${e ? '<button type="button" class="b del" data-del>Delete</button>' : ''}<button type="submit" class="b pri">Save</button></div></form>`, sh => {
+    const f = $('#f-entry', sh); let auto = !e && !!j0;
+    const read = () => ({ date: f.date.value, start: f.start.value, end: f.end.value, brk: Math.round(+f.brk.value || 0), miles: +f.miles.value || 0, note: f.note.value.trim(), jnum: f.jnum.value.trim().toUpperCase() });
+    const upd = () => { $('#pv', sh).textContent = entryPreview(read(), id); };
+    f.jnum.addEventListener('input', () => { auto = false; f.jnum.value = f.jnum.value.toUpperCase().replace(/[^J0-9]/g, ''); });
+    f.date.addEventListener('change', () => { if (!id && (auto || !f.jnum.value)) { const j = parseISO(f.date.value) ? sameDayJ(f.date.value, '') : ''; f.jnum.value = j; auto = !!j; } });
+    f.addEventListener('input', upd); f.addEventListener('change', upd); upd();
+    f.addEventListener('submit', ev => {
+      ev.preventDefault(); const o = read(), err = m => { $('#er', sh).textContent = m; };
+      if (!parseISO(o.date)) return err('Choose a date.');
+      if (!timeOk(o.start) || !timeOk(o.end)) return err('Enter a start and end time.');
+      if (minutes(o) <= 0) return err('That entry has no paid time. Check the times and the break.');
+      if (o.jnum && !/^J\d{6}$/.test(o.jnum)) return err('The J number must be the letter J and 6 digits, for example J123456.');
+      const other = o.jnum ? sameDayJ(o.date, id) : '';
+      if (other && other !== o.jnum && !confirm('This day already has J number ' + other + '. Save ' + o.jnum + ' anyway?')) return;
+      const rec = { id: id || uid(), ...o, brk: Math.max(0, Math.min(600, o.brk)), miles: Math.max(0, Math.min(2000, o.miles)), mt: Date.now() };
+      db.e = db.e.filter(x => x.id !== rec.id).concat([rec]);
+      showDate(rec.date); save(); closeSheet(); render(); toast(id ? 'Entry updated' : 'Entry added');
+    });
+    const del = $('[data-del]', sh);
+    if (del) del.onclick = () => { if (confirm('Delete this entry?')) { db.e = db.e.filter(x => x.id !== id); db.dl[id] = Date.now(); save(); closeSheet(); render(); toast('Entry deleted'); } };
+  });
+}
+function openDay(d) {
+  const c = calc(db), list = db.e.filter(e => e.date === d).sort((a, b) => a.start < b.start ? -1 : 1), [, , pd] = payPeriod(db.s, 0);
+  const tot = list.reduce((a, e) => a + c[e.id].pay, 0), hh = list.reduce((a, e) => a + c[e.id].h, 0);
+  openSheet(niceDate(d), `${d === pd ? '<p class="hint">Estimated payday for the current pay period.</p>' : ''}
+    ${list.length ? `<div class="sumbar"><b>${esc(dur(hh))}</b> worked &middot; wages <b>${esc(money(tot))}</b></div><ul class="list">${list.map(e => `<li><button class="row" type="button" data-edit-e="${e.id}"><span class="dt"><b>${+d.slice(8)}</b><span>${DOW[wd(d)]}</span></span><span><div class="t1">${e.start} - ${e.end}</div><div class="t2">${esc([e.jnum, e.note].filter(Boolean).join(' · ')) || '&nbsp;'}</div></span><span class="rt"><b>${esc(dur(c[e.id].h))}</b><span>${esc(money(c[e.id].pay))}</span></span></button></li>`).join('')}</ul>` : '<p class="empty">No hours logged on this day.</p>'}
+    <div class="btns"><button type="button" class="b" data-close>Close</button><button type="button" class="b pri" data-add-day="${d}">Add hours</button></div>`);
+}
+function clock() {
+  if (!db.timer) { db.timer = Date.now(); save(); return render(); }
+  const a = new Date(db.timer), b = new Date(), secs = (b - a) / 1000; db.timer = null;
+  if (secs < 60) { save(); render(); return toast('The timer ran for under a minute, so nothing was saved.'); }
+  const date = a.getFullYear() + '-' + pad(a.getMonth() + 1) + '-' + pad(a.getDate());
+  const o = { id: uid(), date, start: pad(a.getHours()) + ':' + pad(a.getMinutes()), end: pad(b.getHours()) + ':' + pad(b.getMinutes()), brk: db.s.brk, miles: db.s.dmi, note: '', jnum: sameDayJ(date, ''), mt: Date.now() };
+  if (minutes(o) <= 0) o.brk = 0;
+  db.e.push(o); showDate(date); save(); render(); toast('Shift saved');
+}
+
+/* ---------------- expenses ---------------- */
+function expHTML() {
+  const cx = ctx(), rows = [...cx.xrows].sort((a, b) => (b.date + b.id) < (a.date + a.id) ? -1 : 1);
+  if (!rows.length) { const out = db.x.length; return `<p class="empty">No expenses in this period. Tap + Expense to add one.${out ? ' ' + out + ' expense' + (out === 1 ? ' is' : 's are') + ' outside this period. Choose All time at the top to see everything.' : ''}</p>`; }
+  const tot = rows.reduce((a, x) => a + x.amt, 0), re = rows.filter(x => x.re).reduce((a, x) => a + x.amt, 0);
+  return `<div class="sumbar">Total <b>${esc(money(tot))}</b> &middot; reimbursable ${esc(money(re))} &middot; you paid ${esc(money(tot - re))}</div><ul class="list">` +
+    rows.map(x => `<li><button class="row" type="button" data-edit-x="${x.id}"><span class="dt"><b>${+x.date.slice(8)}</b><span>${MON[+x.date.slice(5, 7) - 1]}</span></span>
+      <span><div class="t1">${esc(x.cat)}</div><div class="t2">${esc(x.desc) || '&nbsp;'}</div></span>
+      <span class="rt"><b>${esc(money(x.amt))}</b>${x.re ? '<span class="tag">Reimbursable</span>' : ''}${x.receipt ? '<span class="tag we">Receipt on PC</span>' : ''}</span></button></li>`).join('') + '</ul>';
+}
+function openExp(id) {
+  const e = id ? db.x.find(x => x.id === id) : null, v = e || { date: today(), cat: '', desc: '', amt: '', re: false };
+  const cats = [...new Set([...CATS, ...db.x.map(x => x.cat)])];
+  openSheet(e ? 'Edit expense' : 'Add expense', `<form id="f-exp" novalidate><div class="fgrid">
+    <label class="fl span2">Date<input type="date" name="date" required value="${esc(v.date)}"></label>
+    <label class="fl span2">Category<input name="cat" list="cats" maxlength="40" autocomplete="off" placeholder="Choose or type" value="${esc(v.cat)}"><datalist id="cats">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist></label>
+    <label class="fl span2">Description<input name="desc" maxlength="200" placeholder="What was it for?" value="${esc(v.desc)}"></label>
+    <label class="fl">Amount (${esc(db.s.cur)})<input type="number" name="amt" min="0" step="0.01" inputmode="decimal" value="${v.amt}"></label>
+    <label class="fl chk"><input type="checkbox" name="re"${v.re ? ' checked' : ''}>Reimbursable</label></div>
+    ${e && e.receipt ? '<p class="hint">A receipt is attached on your PC. Open the Windows app to view it.</p>' : '<p class="hint">Receipt photos are added in the Windows app.</p>'}
+    <p class="err" id="er" role="alert"></p>
+    <div class="btns"><button type="button" class="b" data-close>Cancel</button>${e ? '<button type="button" class="b del" data-del>Delete</button>' : ''}<button type="submit" class="b pri">Save</button></div></form>`, sh => {
+    const f = $('#f-exp', sh);
+    f.addEventListener('submit', ev => {
+      ev.preventDefault(); const amt = parseFloat(f.amt.value), err = m => { $('#er', sh).textContent = m; };
+      if (!parseISO(f.date.value)) return err('Choose a date.');
+      if (!(amt > 0)) return err('Enter an amount above zero.');
+      const rec = { id: id || uid(), date: f.date.value, cat: f.cat.value.trim().slice(0, 40) || 'Other', desc: f.desc.value.trim(), amt: Math.min(1e9, amt), re: f.re.checked, receipt: e ? e.receipt || '' : '', mt: Date.now() };
+      db.x = db.x.filter(x => x.id !== rec.id).concat([rec]); showDate(rec.date); save(); closeSheet(); render(); toast(id ? 'Expense updated' : 'Expense added');
+    });
+    const del = $('[data-del]', sh);
+    if (del) del.onclick = () => { if (confirm('Delete this expense?' + (e.receipt ? ' Its receipt on the PC is removed at the next sync.' : ''))) { db.x = db.x.filter(x => x.id !== id); db.dl[id] = Date.now(); save(); closeSheet(); render(); toast('Expense deleted'); } };
+  });
+}
+
+/* ---------------- settings & sync ---------------- */
+const SET_FIELDS = [
+  ['name', 'Your name or business', 'text', 2], ['cur', 'Currency symbol', 'text'], ['rate', 'Hourly rate', 'num', 1, '0.01'],
+  ['wm', 'Weekend multiplier (Sat and Sun)', 'num', 1, '0.05'], ['otm', 'Overtime multiplier', 'num', 1, '0.05'],
+  ['otd', 'Daily overtime after (hours per day, 0 = off)', 'num', 1, '0.5'], ['ot', 'Weekly overtime after (weekday hours, 0 = off)', 'num', 1, '0.5'],
+  ['tax', 'Estimated tax on wages (%)', 'num', 1, '0.5'], ['brk', 'Default unpaid break (min)', 'num', 1, '5'], ['gas', 'Gas allowance per mile', 'num', 1, '0.01'],
+  ['dmi', 'Default miles per day', 'num', 1, '1'], ['acc', 'Accommodation per day worked', 'num', 1, '0.01'], ['ppd', 'Payday after period ends (days)', 'num', 1, '1']];
+function historyHTML() {
+  const s = db.sync, row = (k, v) => `<div class="hrow"><span>${esc(k)}</span><b>${v}</b></div>`;
+  return '<div class="hist">' +
+    row('Wi-Fi sync', s.last ? esc(whenTxt(s.last) + (s.via ? ' (' + s.via + ')' : '') + (s.ok || s.failAt < s.last ? ': ' + (s.msg || 'done') : '')) : 'never') +
+    (s.failAt > (s.last || 0) && !s.ok ? row('Last Wi-Fi attempt failed', esc(whenTxt(s.failAt) + ': ' + (s.msg || ''))) : '') +
+    row('File loaded from PC', s.lastIn ? esc(whenTxt(s.lastIn) + ': ' + (s.inMsg || 'done') + (s.inSaved ? '. File was saved ' + whenTxt(s.inSaved) : '')) : 'never') +
+    row('File saved from phone', s.expAt ? esc(whenTxt(s.expAt)) : 'never') + '</div>';
+}
+function moreHTML() {
+  const s = db.s, sy = db.sync, n = dirtyCount();
+  return `<section class="card" style="margin-bottom:12px"><h2>Phone sync</h2>
+    <p class="help" style="margin-top:0">Syncing merges this phone with your PC. Newest edit wins for each entry, and nothing is lost.${location.protocol === 'https:' ? ' Tap Sync now on your home Wi-Fi: a small PC page opens for a second and closes by itself, so allow pop-ups for this site.' : ''}</p>
+    <div class="fgrid" style="margin-top:12px">
+      <label class="fl span2">PC address <small>(leave empty if this page was opened from your PC)</small><input id="sy-url" inputmode="url" autocapitalize="none" autocomplete="off" placeholder="http://192.168.1.23:8765" value="${esc(sy.url)}"></label>
+      <label class="fl span2">Pairing code <small>(6 digits shown on the PC)</small><input id="sy-code" inputmode="numeric" maxlength="6" autocomplete="off" placeholder="123456" value="${esc(sy.code)}"></label></div>
+    <div class="btns"><button class="b pri" data-act="sync" type="button"${syncState === 'busy' ? ' disabled' : ''}>Sync now</button></div>
+    <p class="st ${sy.ok ? 'ok' : 'bad'}" id="sy-msg" role="status">${esc(!sy.ok && sy.failAt ? sy.msg : sy.last ? 'Last Wi-Fi sync ' + ago(sy.last) + ': ' + (sy.msg || 'done') + '.' : 'No Wi-Fi sync yet. The first sync copies your PC settings to this phone.')}${n ? ' ' + n + ' change' + (n === 1 ? '' : 's') + ' waiting to send.' : ''}</p>
+    <h2 style="margin-top:18px">Sync with a file (OneDrive or Files)</h2>
+    <p class="help" style="margin-top:0">Works from anywhere. The Windows app keeps <b>workledger-pc.json</b> in your OneDrive folder. Tap <b>Load latest file</b> and pick it in Files &gt; OneDrive. To send your changes back tap <b>Save my file</b>, choose Save to Files, pick the same OneDrive folder and Replace <b>workledger-phone.json</b>. iPhones do not let web apps read Files by themselves, so each load or save is one tap and one pick.</p>
+    <div class="btns"><button class="b pri" data-act="import" type="button">Load latest file</button><button class="b" data-act="share" type="button">Save my file</button><input type="file" id="imp" accept=".json,application/json" hidden></div>
+    <h2 style="margin-top:18px">Sync history</h2>${historyHTML()}</section>
+  <section class="card" style="margin-bottom:12px"><h2>Pay settings</h2><form id="f-set" novalidate><div class="fgrid">
+    ${SET_FIELDS.map(([k, l, t, sp, st]) => `<label class="fl${sp === 2 ? ' span2' : ''}">${esc(l)}<input name="${k}" ${t === 'num' ? `type="number" inputmode="decimal" step="${st}"` : 'type="text"'} ${k === 'cur' ? 'maxlength="4"' : ''} value="${esc(s[k])}"></label>`).join('')}</div>
+    <div class="btns"><button class="b pri" type="submit">Save settings</button></div>
+    <p class="help">Weekend hours are paid at the weekend multiplier and never count as overtime. Gas and accommodation are added after tax. Pay periods are the 1st to the 15th and the 16th to month end. Settings apply to all entries, past and future.</p></form></section>
+  <section class="card"><h2>This phone</h2><p class="help" style="margin-top:0">Your data is stored only on this phone and is never sent anywhere except to your own PC when you sync. Sync regularly so a lost or reset phone never loses entries.</p>
+    <div class="btns"><button class="b del" data-act="clear" type="button">Clear data on this phone</button></div>
+    <p class="help">Clearing does not touch your PC. The next sync brings everything back.</p></section>`;
+}
+function bindMore() {
+  const f = $('#f-set'); if (!f) return;
+  f.addEventListener('submit', ev => {
+    ev.preventDefault(); const o = {}; for (const [k, , t] of SET_FIELDS) o[k] = t === 'num' ? f[k].value : f[k].value;
+    db.s = cleanSettings(o); db.pmt = Date.now(); save(); render(); toast('Settings saved');
+  });
+  $('#sy-url').addEventListener('change', e => { let u = e.target.value.trim(); if (u && !/^https?:\/\//i.test(u)) u = 'http://' + u; db.sync.url = u.replace(/\/+$/, ''); e.target.value = db.sync.url; save(); });
+  $('#sy-code').addEventListener('input', e => { e.target.value = e.target.value.replace(/\D/g, '').slice(0, 6); db.sync.code = e.target.value; save(); });
+  $('#imp').addEventListener('change', async e => {
+    const file = e.target.files[0]; e.target.value = ''; if (!file) return;
+    try {
+      const raw = JSON.parse(await file.text()), st = mergeInto(raw, true, 'remote'), t = Number(raw && raw.t) > 0 ? Number(raw.t) : 0;
+      Object.assign(db.sync, { lastIn: Date.now(), inMsg: statText(st), inSaved: t, ok: true, inName: file.name.slice(0, 60) });
+      save(); render(); toast('Loaded ' + file.name + ': ' + statText(st));
+    }
+    catch (er) { toast(er instanceof SyntaxError ? 'That file is not a WorkLedger sync file.' : er.message); }
+  });
+}
+function pcBase() {
+  const u = (db.sync.url || '').trim();
+  if (u) return u.replace(/\/+$/, '');
+  return location.protocol === 'http:' || location.protocol === 'https:' ? location.origin : '';
+}
+async function syncNow(quiet) {
+  if (syncState === 'busy') return;
+  const base = pcBase(), code = db.sync.code || '';
+  const fail = m => { db.sync.ok = false; db.sync.failAt = Date.now(); db.sync.msg = m; syncState = 'idle'; save(); render(); if (!quiet) toast(m); return false; };
+  if (!base) { db.sync.ok = false; db.sync.failAt = Date.now(); db.sync.msg = 'Enter your PC address first.'; save(); render(); return false; }
+  if (!/^\d{6}$/.test(code)) { db.sync.ok = false; db.sync.failAt = Date.now(); db.sync.msg = 'Enter the 6-digit pairing code shown on the PC.'; save(); render(); if (!quiet) toast(db.sync.msg); return false; }
+  // A secure (https) page cannot call the PC's http address directly. Go through a small page served by the PC instead.
+  // The popup must be opened right here, while the tap that started the sync is still fresh.
+  const viaBridge = location.protocol === 'https:' && /^http:/i.test(base);
+  let win = null;
+  if (viaBridge) {
+    win = window.open(base + '/bridge', 'wl-bridge');
+    if (!win) return fail('Pop-ups are blocked. Allow pop-ups for this site, then try again.');
+  }
+  syncState = 'busy'; render();
+  try {
+    let status, j;
+    if (viaBridge) ({ status, body: j } = await bridgeCall(win, base, code, bundle(true)));
+    else {
+      const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 15000);
+      const res = await fetch(base + '/api/sync', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Code': code }, body: JSON.stringify({ data: bundle(true) }), signal: ctl.signal, cache: 'no-store' });
+      clearTimeout(tm);
+      status = res.status; j = await res.json().catch(() => ({}));
+    }
+    if (status === 401 || status === 429) return fail(j.error || 'The pairing code was not accepted.');
+    if (status !== 200 || !j.data) return fail(j.error || 'The PC could not complete the sync.');
+    const st = mergeInto(j.data, true, 'all');
+    Object.assign(db.sync, { last: Date.now(), ok: true, via: viaBridge ? 'Wi-Fi (bridge)' : 'Wi-Fi', msg: statText(st) });
+    syncState = 'idle'; save(); render(); if (!quiet) toast('Synced: ' + statText(st)); return true;
+  } catch (e) {
+    return fail(e.name === 'AbortError' ? 'The PC did not answer in time.' : 'Cannot reach the PC. Check that this phone is on the same Wi-Fi, that WorkLedger is open on the PC and Phone sync is started, and that the address and code are right.');
+  }
+}
+/* Talks to the PC through the popup page at <PC>/bridge using postMessage (works from an https page). */
+function bridgeCall(win, base, code, data) {
+  const origin = new URL(base).origin, id = uid();
+  return new Promise((resolve, reject) => {
+    let sent = false, done = false;
+    const finish = (fn, v) => { if (done) return; done = true; clearTimeout(t1); clearTimeout(t2); window.removeEventListener('message', on); try { win.close(); } catch (e) { /* ignore */ } fn(v); };
+    const on = ev => {
+      if (ev.origin !== origin || ev.source !== win || !ev.data) return;
+      if (ev.data.type === 'wl-ready' && !sent) { sent = true; clearTimeout(t1); win.postMessage({ type: 'wl-sync', id, code, data }, origin); }
+      else if (ev.data.type === 'wl-result' && ev.data.id === id) ev.data.error ? finish(reject, new Error('net')) : finish(resolve, { status: ev.data.status, body: ev.data.body || {} });
+    };
+    const t1 = setTimeout(() => finish(reject, new Error('net')), 12000);
+    const t2 = setTimeout(() => finish(reject, Object.assign(new Error('slow'), { name: 'AbortError' })), 40000);
+    window.addEventListener('message', on);
+  });
+}
+async function pcReachable() {
+  const base = pcBase(); if (!base) return false;
+  try { const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 2500); const r = await fetch(base + '/api/ping', { signal: ctl.signal, cache: 'no-store' }); clearTimeout(t); const j = await r.json(); return !!(j && j.app === 'WorkLedger'); }
+  catch (e) { return false; }
+}
+async function shareFile() {
+  const json = JSON.stringify(bundle(false), null, 1), name = 'workledger-phone.json';
+  const file = new File([json], name, { type: 'application/json' });
+  const saved = () => { db.sync.expAt = Date.now(); db.sync.ok = true; markAll(); save(); render(); };
+  if (navigator.canShare && navigator.canShare({ files: [file] })) { try { await navigator.share({ files: [file], title: 'WorkLedger phone file' }); saved(); toast('Shared ' + name); return; } catch (e) { if (e.name === 'AbortError') return; } }
+  const a = document.createElement('a'); a.href = URL.createObjectURL(file); a.download = name; document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 800); saved(); toast(name + ' saved to your downloads');
+}
+
+/* ---------------- sheets ---------------- */
+function openSheet(title, body, onMount) {
+  closeSheet();
+  const root = $('#sheet-root');
+  root.innerHTML = `<div class="back" data-close></div><div class="sheet" role="dialog" aria-modal="true" aria-label="${esc(title)}" tabindex="-1"><div class="grab"></div><h2>${esc(title)}</h2>${body}</div>`;
+  document.body.classList.add('lock');
+  const sh = $('.sheet', root); sh.focus({ preventScroll: true });
+  if (onMount) onMount(sh);
+}
+function closeSheet() { $('#sheet-root').innerHTML = ''; document.body.classList.remove('lock'); }
+
+/* ---------------- main render + events ---------------- */
+function render() {
+  renderHeader();
+  const v = $('#view'), y = window.scrollY, t = db.ui.tab;
+  v.innerHTML = t === 'dash' ? dashHTML() : t === 'hours' ? hoursHTML() : t === 'exp' ? expHTML() : moreHTML();
+  if (t === 'more') bindMore();
+  window.scrollTo(0, y);
+  updTimer();
+}
+function go(tab) { db.ui.tab = tab; db.ui.edit = false; save(); render(); window.scrollTo(0, 0); }
+function updTimer() { const el = $('#tv'); if (!el || !db.timer) return; const s = Math.floor((Date.now() - db.timer) / 1000); el.textContent = pad(Math.floor(s / 3600)) + ':' + pad(Math.floor(s / 60) % 60) + ':' + pad(s % 60); }
+
+function init() {
+  db = loadDB();
+  try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch (e) { /* optional */ }
+  $('#tabs').addEventListener('click', e => { const b = e.target.closest('button[data-tab]'); if (b) go(b.dataset.tab); });
+  $('#fab').addEventListener('click', () => db.ui.tab === 'exp' ? openExp() : openEntry());
+  $('#syncpill').addEventListener('click', () => { if (/^\d{6}$/.test(db.sync.code) && pcBase()) syncNow(false); else go('more'); });
+  $('#period').addEventListener('change', e => { db.ui.p = e.target.value; if (db.ui.p === 'custom' && !(parseISO(db.ui.pf) && parseISO(db.ui.pt))) { const [a, b] = payPeriod(db.s, 0); db.ui.pf = a; db.ui.pt = b; } save(); render(); });
+  $('#pf').addEventListener('change', e => { db.ui.pf = e.target.value; save(); render(); });
+  $('#pt').addEventListener('change', e => { db.ui.pt = e.target.value; save(); render(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeSheet(); });
+  document.addEventListener('click', e => {
+    const t = e.target;
+    if (t.closest('[data-close]')) return closeSheet();
+    let el;
+    if ((el = t.closest('[data-edit-e]'))) { const id = el.dataset.editE; return openEntry(id); }
+    if ((el = t.closest('[data-edit-x]'))) return openExp(el.dataset.editX);
+    if ((el = t.closest('[data-add-day]'))) return openEntry(null, el.dataset.addDay);
+    if ((el = t.closest('[data-day]'))) return openDay(el.dataset.day);
+    if ((el = t.closest('[data-cal]'))) { const n = +el.dataset.cal, base = db.ui.cal || today().slice(0, 7); let ym = today().slice(0, 7); if (n) { const m = (+base.slice(5) - 1) + n, y = +base.slice(0, 4) + Math.floor(m / 12); ym = y + '-' + pad(((m % 12) + 12) % 12 + 1); } db.ui.cal = ym; save(); return render(); }
+    if ((el = t.closest('[data-tab-go]'))) return go(el.dataset.tabGo);
+    if ((el = t.closest('[data-mv]'))) { const o = db.ui.order, i = o.indexOf(el.dataset.k), j = i + (+el.dataset.mv); if (j >= 0 && j < o.length) { [o[i], o[j]] = [o[j], o[i]]; save(); render(); const nb = $(`[data-card="${el.dataset.k}"]`); if (nb) nb.scrollIntoView({ block: 'center', behavior: 'instant' }); } return; }
+    if ((el = t.closest('[data-read]'))) { $$('.hit.sel').forEach(h => h.classList.remove('sel')); el.classList.add('sel'); const r = $('#chart-read'); if (r) r.textContent = el.dataset.read; return; }
+    if ((el = t.closest('[data-act]'))) {
+      const a = el.dataset.act;
+      if (a === 'toggle-edit') { db.ui.edit = !db.ui.edit; return render(); }
+      if (a === 'reset-layout') { db.ui.order = [...CARD_KEYS]; save(); return render(); }
+      if (a === 'clock') return clock();
+      if (a === 'discard') { if (confirm('Discard the running timer?')) { db.timer = null; save(); render(); } return; }
+      if (a === 'sync') return syncNow(false);
+      if (a === 'share') return shareFile();
+      if (a === 'import') return $('#imp').click();
+      if (a === 'clear') { if (confirm('Clear all data on this phone? Your PC is not changed.') && confirm('Last check: anything not yet synced will be lost.')) { const keep = { url: db.sync.url, code: db.sync.code }; db = newDB(); Object.assign(db.sync, keep); save(); render(); toast('Phone data cleared'); } return; }
+    }
+  });
+  document.addEventListener('focusin', e => { const el = e.target.closest && e.target.closest('[data-read]'); if (el) { const r = $('#chart-read'); if (r) r.textContent = el.dataset.read; } });
+  document.addEventListener('change', e => {
+    const el = e.target.closest && e.target.closest('[data-inc]');
+    if (el) { db.inc[el.dataset.inc] = el.checked; db.pmt = Date.now(); save(); render(); }
+  });
+  setInterval(updTimer, 1000);
+  setInterval(() => { if (syncState !== 'busy') renderPill(); }, 30000);
+  render();
+  if (!$('#view').children.length) render();
+  // keep this phone fresh whenever it is opened from the PC page and a pairing code is saved
+  const auto = async () => { if (/^\d{6}$/.test(db.sync.code) && (!db.sync.last || Date.now() - db.sync.last > 120000) && await pcReachable()) syncNow(true); };
+  auto();
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') auto(); });
+  if ('serviceWorker' in navigator && window.isSecureContext && location.protocol !== 'file:') navigator.serviceWorker.register('sw.js').catch(() => { });
+  window.WL = { get db() { return db; }, syncNow, render, calc, summary };
+}
+if (typeof document !== 'undefined') init();
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { calc, summary, mergeBundle, cleanBundle, halfBounds, payPeriod, periodRange, minutes, DEF_S, DEF_INC, setToday: d => { _today = d; } };
+}
+</script>
+</body>
+</html>
